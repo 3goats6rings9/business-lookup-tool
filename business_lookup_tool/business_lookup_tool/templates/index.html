@@ -1,0 +1,998 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Business Lookup & Logistics Optimization Tool</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f8f9fa;
+        }
+        .navbar {
+            background-color: #343a40;
+        }
+        .navbar-brand {
+            font-weight: bold;
+            color: white;
+        }
+        .card {
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border: none;
+        }
+        .card-header {
+            background-color: #343a40;
+            color: white;
+            font-weight: bold;
+        }
+        .btn-primary {
+            background-color: #007bff;
+            border-color: #007bff;
+        }
+        .btn-primary:hover {
+            background-color: #0069d9;
+            border-color: #0062cc;
+        }
+        .tab-content {
+            padding: 20px;
+            background-color: white;
+            border: 1px solid #dee2e6;
+            border-top: none;
+            border-radius: 0 0 5px 5px;
+        }
+        .nav-tabs .nav-link.active {
+            font-weight: bold;
+        }
+        .company-card {
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .company-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
+        }
+        .badge-high {
+            background-color: #28a745;
+        }
+        .badge-medium {
+            background-color: #ffc107;
+        }
+        .badge-low {
+            background-color: #dc3545;
+        }
+        #map-container {
+            height: 500px;
+            width: 100%;
+        }
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 200px;
+        }
+        .spinner-border {
+            width: 3rem;
+            height: 3rem;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container">
+            <a class="navbar-brand" href="#">
+                <i class="fas fa-building me-2"></i>
+                Business Lookup & Logistics Optimization Tool
+            </a>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <div class="row">
+            <div class="col-md-12">
+                <ul class="nav nav-tabs" id="myTab" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="lookup-tab" data-bs-toggle="tab" data-bs-target="#lookup" type="button" role="tab" aria-controls="lookup" aria-selected="true">
+                            <i class="fas fa-search me-2"></i>Company Lookup
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="discover-tab" data-bs-toggle="tab" data-bs-target="#discover" type="button" role="tab" aria-controls="discover" aria-selected="false">
+                            <i class="fas fa-industry me-2"></i>Industry Discovery
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="logistics-tab" data-bs-toggle="tab" data-bs-target="#logistics" type="button" role="tab" aria-controls="logistics" aria-selected="false">
+                            <i class="fas fa-route me-2"></i>Logistics Optimization
+                        </button>
+                    </li>
+                </ul>
+                <div class="tab-content" id="myTabContent">
+                    <!-- Company Lookup Tab -->
+                    <div class="tab-pane fade show active" id="lookup" role="tabpanel" aria-labelledby="lookup-tab">
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <i class="fas fa-search me-2"></i>Find a Company
+                                    </div>
+                                    <div class="card-body">
+                                        <form id="lookup-form">
+                                            <div class="row">
+                                                <div class="col-md-5">
+                                                    <div class="mb-3">
+                                                        <label for="company-name" class="form-label">Company Name</label>
+                                                        <input type="text" class="form-control" id="company-name" placeholder="Enter company name" required>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-5">
+                                                    <div class="mb-3">
+                                                        <label for="company-location" class="form-label">Location (Optional)</label>
+                                                        <input type="text" class="form-control" id="company-location" placeholder="City, State, or Zip">
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-2 d-flex align-items-end">
+                                                    <div class="mb-3 w-100">
+                                                        <button type="submit" class="btn btn-primary w-100">
+                                                            <i class="fas fa-search me-2"></i>Search
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="company-details-container" style="display: none;">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="card">
+                                        <div class="card-header">
+                                            <i class="fas fa-building me-2"></i>Company Details
+                                        </div>
+                                        <div class="card-body" id="company-details">
+                                            <!-- Company details will be populated here -->
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="card">
+                                        <div class="card-header">
+                                            <i class="fas fa-chart-pie me-2"></i>Tax Saving Potential
+                                        </div>
+                                        <div class="card-body" id="tax-potential">
+                                            <!-- Tax potential details will be populated here -->
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card mt-4">
+                                <div class="card-header">
+                                    <i class="fas fa-users me-2"></i>Similar Companies
+                                </div>
+                                <div class="card-body">
+                                    <div id="similar-companies-loading" class="loading">
+                                        <div class="spinner-border text-primary" role="status">
+                                            <span class="visually-hidden">Loading...</span>
+                                        </div>
+                                    </div>
+                                    <div id="similar-companies-container" class="row" style="display: none;">
+                                        <!-- Similar companies will be populated here -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Industry Discovery Tab -->
+                    <div class="tab-pane fade" id="discover" role="tabpanel" aria-labelledby="discover-tab">
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <i class="fas fa-industry me-2"></i>Discover Companies by Industry
+                                    </div>
+                                    <div class="card-body">
+                                        <form id="discover-form">
+                                            <div class="row">
+                                                <div class="col-md-3">
+                                                    <div class="mb-3">
+                                                        <label for="industry-select" class="form-label">Industry</label>
+                                                        <select class="form-select" id="industry-select" required>
+                                                            <option value="" selected disabled>Select an industry</option>
+                                                            <option value="construction">Construction</option>
+                                                            <option value="manufacturing">Manufacturing</option>
+                                                            <option value="trucking">Trucking & Logistics</option>
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <div class="mb-3">
+                                                        <label for="industry-location" class="form-label">Location</label>
+                                                        <input type="text" class="form-control" id="industry-location" placeholder="City, State, or Zip">
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-2">
+                                                    <div class="mb-3">
+                                                        <label for="min-employees" class="form-label">Min. Employees</label>
+                                                        <input type="number" class="form-control" id="min-employees" value="10" min="1">
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-2">
+                                                    <div class="mb-3">
+                                                        <label class="form-label">Business Type</label>
+                                                        <div class="form-check">
+                                                            <input class="form-check-input" type="checkbox" id="owner-operated" checked>
+                                                            <label class="form-check-label" for="owner-operated">
+                                                                Owner-Operated
+                                                            </label>
+                                                        </div>
+                                                        <div class="form-check">
+                                                            <input class="form-check-input" type="checkbox" id="growth-mode" checked>
+                                                            <label class="form-check-label" for="growth-mode">
+                                                                Growth Mode
+                                                            </label>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-2 d-flex align-items-end">
+                                                    <div class="mb-3 w-100">
+                                                        <button type="submit" class="btn btn-primary w-100">
+                                                            <i class="fas fa-search me-2"></i>Discover
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="discovered-companies-container" style="display: none;">
+                            <div class="card mt-4">
+                                <div class="card-header">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <i class="fas fa-list me-2"></i>Discovered Companies
+                                        </div>
+                                        <button id="export-discovered" class="btn btn-sm btn-success">
+                                            <i class="fas fa-file-csv me-2"></i>Export to CSV
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="card-body">
+                                    <div id="discovered-companies-loading" class="loading">
+                                        <div class="spinner-border text-primary" role="status">
+                                            <span class="visually-hidden">Loading...</span>
+                                        </div>
+                                    </div>
+                                    <div id="discovered-companies-list" class="row" style="display: none;">
+                                        <!-- Discovered companies will be populated here -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Logistics Optimization Tab -->
+                    <div class="tab-pane fade" id="logistics" role="tabpanel" aria-labelledby="logistics-tab">
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <i class="fas fa-route me-2"></i>Optimize Outreach Logistics
+                                    </div>
+                                    <div class="card-body">
+                                        <p class="mb-3">Select companies from your search results to optimize outreach logistics.</p>
+                                        <div id="selected-companies-container">
+                                            <div class="alert alert-info">
+                                                <i class="fas fa-info-circle me-2"></i>No companies selected. Use the Company Lookup or Industry Discovery tabs to find and select companies.
+                                            </div>
+                                        </div>
+                                        <div class="text-end mt-3">
+                                            <button id="optimize-logistics-btn" class="btn btn-primary" disabled>
+                                                <i class="fas fa-route me-2"></i>Optimize Logistics
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="logistics-results-container" style="display: none;">
+                            <div class="row mt-4">
+                                <div class="col-md-4">
+                                    <div class="card">
+                                        <div class="card-header">
+                                            <i class="fas fa-calendar-alt me-2"></i>Weekly Schedule
+                                        </div>
+                                        <div class="card-body">
+                                            <ul class="nav nav-pills flex-column" id="schedule-tabs">
+                                                <li class="nav-item">
+                                                    <button class="nav-link active" id="monday-tab" data-bs-toggle="pill" data-bs-target="#monday" type="button">Monday</button>
+                                                </li>
+                                                <li class="nav-item">
+                                                    <button class="nav-link" id="tuesday-tab" data-bs-toggle="pill" data-bs-target="#tuesday" type="button">Tuesday</button>
+                                                </li>
+                                                <li class="nav-item">
+                                                    <button class="nav-link" id="wednesday-tab" data-bs-toggle="pill" data-bs-target="#wednesday" type="button">Wednesday</button>
+                                                </li>
+                                                <li class="nav-item">
+                                                    <button class="nav-link" id="thursday-tab" data-bs-toggle="pill" data-bs-target="#thursday" type="button">Thursday</button>
+                                                </li>
+                                                <li class="nav-item">
+                                                    <button class="nav-link" id="friday-tab" data-bs-toggle="pill" data-bs-target="#friday" type="button">Friday</button>
+                                                </li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                    <div class="card mt-4">
+                                        <div class="card-header">
+                                            <i class="fas fa-chart-line me-2"></i>Best Outreach Days
+                                        </div>
+                                        <div class="card-body">
+                                            <div id="best-days-chart">
+                                                <!-- Best days chart will be populated here -->
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-8">
+                                    <div class="card">
+                                        <div class="card-header">
+                                            <i class="fas fa-map-marked-alt me-2"></i>Route Map
+                                        </div>
+                                        <div class="card-body">
+                                            <div class="tab-content" id="schedule-tab-content">
+                                                <div class="tab-pane fade show active" id="monday" role="tabpanel">
+                                                    <div id="monday-details"></div>
+                                                    <div id="monday-map" class="mt-3">
+                                                        <div class="alert alert-info">Select Monday in the schedule to view the route map.</div>
+                                                    </div>
+                                                </div>
+                                                <div class="tab-pane fade" id="tuesday" role="tabpanel">
+                                                    <div id="tuesday-details"></div>
+                                                    <div id="tuesday-map" class="mt-3">
+                                                        <div class="alert alert-info">Select Tuesday in the schedule to view the route map.</div>
+                                                    </div>
+                                                </div>
+                                                <div class="tab-pane fade" id="wednesday" role="tabpanel">
+                                                    <div id="wednesday-details"></div>
+                                                    <div id="wednesday-map" class="mt-3">
+                                                        <div class="alert alert-info">Select Wednesday in the schedule to view the route map.</div>
+                                                    </div>
+                                                </div>
+                                                <div class="tab-pane fade" id="thursday" role="tabpanel">
+                                                    <div id="thursday-details"></div>
+                                                    <div id="thursday-map" class="mt-3">
+                                                        <div class="alert alert-info">Select Thursday in the schedule to view the route map.</div>
+                                                    </div>
+                                                </div>
+                                                <div class="tab-pane fade" id="friday" role="tabpanel">
+                                                    <div id="friday-details"></div>
+                                                    <div id="friday-map" class="mt-3">
+                                                        <div class="alert alert-info">Select Friday in the schedule to view the route map.</div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="bg-dark text-white text-center py-3 mt-5">
+        <div class="container">
+            <p class="mb-0">© 2025 Business Lookup & Logistics Optimization Tool</p>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        // Global variables
+        let currentCompany = null;
+        let selectedCompanies = [];
+        let discoveredCompanies = [];
+
+        // DOM elements
+        const lookupForm = document.getElementById('lookup-form');
+        const discoverForm = document.getElementById('discover-form');
+        const companyDetailsContainer = document.getElementById('company-details-container');
+        const companyDetails = document.getElementById('company-details');
+        const taxPotential = document.getElementById('tax-potential');
+        const similarCompaniesContainer = document.getElementById('similar-companies-container');
+        const similarCompaniesLoading = document.getElementById('similar-companies-loading');
+        const discoveredCompaniesContainer = document.getElementById('discovered-companies-container');
+        const discoveredCompaniesList = document.getElementById('discovered-companies-list');
+        const discoveredCompaniesLoading = document.getElementById('discovered-companies-loading');
+        const selectedCompaniesContainer = document.getElementById('selected-companies-container');
+        const optimizeLogisticsBtn = document.getElementById('optimize-logistics-btn');
+        const logisticsResultsContainer = document.getElementById('logistics-results-container');
+        const exportDiscoveredBtn = document.getElementById('export-discovered');
+
+        // Event listeners
+        lookupForm.addEventListener('submit', handleLookupSubmit);
+        discoverForm.addEventListener('submit', handleDiscoverSubmit);
+        optimizeLogisticsBtn.addEventListener('click', handleOptimizeLogistics);
+        exportDiscoveredBtn.addEventListener('click', handleExportDiscovered);
+
+        // Handle company lookup form submission
+        function handleLookupSubmit(event) {
+            event.preventDefault();
+            const companyName = document.getElementById('company-name').value;
+            const location = document.getElementById('company-location').value;
+            
+            // Show loading state
+            companyDetailsContainer.style.display = 'none';
+            
+            // Make API request to lookup company
+            // In a real implementation, this would call the backend API
+            // For now, we'll use mock data
+            setTimeout(() => {
+                // Mock company data
+                currentCompany = {
+                    id: 'company-123',
+                    name: companyName,
+                    description: 'A leading manufacturer of industrial equipment and components.',
+                    website: 'https://example.com',
+                    legal_structure: 'LLC',
+                    address: {
+                        street: '123 Main St',
+                        city: location || 'Milwaukee',
+                        state: 'WI',
+                        zip: '53202'
+                    },
+                    industry: {
+                        primary: 'Manufacturing',
+                        naics_code: '333',
+                        sic_code: '3500'
+                    },
+                    executives: [
+                        {
+                            name: 'John Smith',
+                            role: 'CEO',
+                            contact: {
+                                phone: '(414) 555-1234',
+                                email: 'john@example.com',
+                                linkedin_url: 'https://linkedin.com/in/johnsmith'
+                            }
+                        }
+                    ],
+                    financials: {
+                        employee_count: 75,
+                        estimated_revenue: 12000000,
+                        growth_rate: 15
+                    },
+                    tax_indicators: {
+                        tax_saving_potential: 'High'
+                    }
+                };
+                
+                // Display company details
+                displayCompanyDetails(currentCompany);
+                
+                // Show similar companies loading
+                similarCompaniesLoading.style.display = 'flex';
+                similarCompaniesContainer.style.display = 'none';
+                
+                // Load similar companies
+                setTimeout(() => {
+                    // Mock similar companies data
+                    const similarCompanies = [
+                        {
+                            id: 'company-456',
+                            name: 'ABC Manufacturing',
+                            description: 'Specializes in precision machining and metal fabrication.',
+                            industry: 'Manufacturing',
+                            address: 'Milwaukee, WI',
+                            employee_count: 50,
+                            similarity_score: 0.92
+                        },
+                        {
+                            id: 'company-789',
+                            name: 'XYZ Industrial',
+                            description: 'Produces industrial machinery and automation equipment.',
+                            industry: 'Manufacturing',
+                            address: 'Waukesha, WI',
+                            employee_count: 85,
+                            similarity_score: 0.87
+                        },
+                        {
+                            id: 'company-101',
+                            name: 'Midwest Fabrication',
+                            description: 'Custom metal fabrication and welding services.',
+                            industry: 'Manufacturing',
+                            address: 'Racine, WI',
+                            employee_count: 35,
+                            similarity_score: 0.81
+                        }
+                    ];
+                    
+                    // Display similar companies
+                    displaySimilarCompanies(similarCompanies);
+                    
+                    // Hide loading
+                    similarCompaniesLoading.style.display = 'none';
+                    similarCompaniesContainer.style.display = 'flex';
+                }, 1500);
+                
+                // Show company details container
+                companyDetailsContainer.style.display = 'block';
+            }, 1000);
+        }
+
+        // Handle industry discovery form submission
+        function handleDiscoverSubmit(event) {
+            event.preventDefault();
+            const industry = document.getElementById('industry-select').value;
+            const location = document.getElementById('industry-location').value;
+            const minEmployees = document.getElementById('min-employees').value;
+            const ownerOperated = document.getElementById('owner-operated').checked;
+            const growthMode = document.getElementById('growth-mode').checked;
+            
+            // Show loading state
+            discoveredCompaniesContainer.style.display = 'block';
+            discoveredCompaniesLoading.style.display = 'flex';
+            discoveredCompaniesList.style.display = 'none';
+            
+            // Make API request to discover companies
+            // In a real implementation, this would call the backend API
+            // For now, we'll use mock data
+            setTimeout(() => {
+                // Mock discovered companies data
+                discoveredCompanies = [
+                    {
+                        id: 'company-201',
+                        name: 'Steel Fabricators Inc.',
+                        description: 'Custom steel fabrication for construction and industrial applications.',
+                        industry: industry.charAt(0).toUpperCase() + industry.slice(1),
+                        address: 'Milwaukee, WI',
+                        employee_count: 45,
+                        tax_saving_potential: 'High'
+                    },
+                    {
+                        id: 'company-202',
+                        name: 'Precision Engineering Co.',
+                        description: 'Engineering services for industrial and commercial projects.',
+                        industry: industry.charAt(0).toUpperCase() + industry.slice(1),
+                        address: 'Waukesha, WI',
+                        employee_count: 30,
+                        tax_saving_potential: 'Medium'
+                    },
+                    {
+                        id: 'company-203',
+                        name: 'Advanced Materials LLC',
+                        description: 'Supplier of specialized materials for manufacturing.',
+                        industry: industry.charAt(0).toUpperCase() + industry.slice(1),
+                        address: 'Kenosha, WI',
+                        employee_count: 25,
+                        tax_saving_potential: 'High'
+                    },
+                    {
+                        id: 'company-204',
+                        name: 'Midwest Contractors',
+                        description: 'General contracting and construction management services.',
+                        industry: industry.charAt(0).toUpperCase() + industry.slice(1),
+                        address: 'Racine, WI',
+                        employee_count: 60,
+                        tax_saving_potential: 'Medium'
+                    },
+                    {
+                        id: 'company-205',
+                        name: 'Quality Transport Services',
+                        description: 'Freight transportation and logistics solutions.',
+                        industry: industry.charAt(0).toUpperCase() + industry.slice(1),
+                        address: 'Madison, WI',
+                        employee_count: 40,
+                        tax_saving_potential: 'Low'
+                    }
+                ];
+                
+                // Display discovered companies
+                displayDiscoveredCompanies(discoveredCompanies);
+                
+                // Hide loading
+                discoveredCompaniesLoading.style.display = 'none';
+                discoveredCompaniesList.style.display = 'flex';
+            }, 1500);
+        }
+
+        // Handle optimize logistics button click
+        function handleOptimizeLogistics() {
+            // Show loading state
+            logisticsResultsContainer.style.display = 'none';
+            
+            // Make API request to optimize logistics
+            // In a real implementation, this would call the backend API
+            // For now, we'll use mock data
+            setTimeout(() => {
+                // Mock logistics results data
+                const logisticsResults = {
+                    schedule: {
+                        Monday: {
+                            companies: [
+                                { id: 'company-123', name: 'Example Manufacturing', address: '123 Main St, Milwaukee, WI' },
+                                { id: 'company-456', name: 'ABC Manufacturing', address: '456 Oak St, Waukesha, WI' }
+                            ],
+                            total_distance: 35.2,
+                            estimated_travel_time: 1.2,
+                            optimized_order: [0, 1, 2]
+                        },
+                        Tuesday: {
+                            companies: [
+                                { id: 'company-789', name: 'XYZ Industrial', address: '789 Pine St, Kenosha, WI' },
+                                { id: 'company-101', name: 'Midwest Fabrication', address: '101 Elm St, Racine, WI' }
+                            ],
+                            total_distance: 42.8,
+                            estimated_travel_time: 1.4,
+                            optimized_order: [0, 2, 1]
+                        },
+                        Wednesday: {
+                            companies: [
+                                { id: 'company-202', name: 'Precision Engineering Co.', address: '202 Maple St, Madison, WI' }
+                            ],
+                            total_distance: 15.5,
+                            estimated_travel_time: 0.5,
+                            optimized_order: [0, 1]
+                        },
+                        Thursday: {
+                            companies: [],
+                            total_distance: 0,
+                            estimated_travel_time: 0,
+                            optimized_order: []
+                        },
+                        Friday: {
+                            companies: [],
+                            total_distance: 0,
+                            estimated_travel_time: 0,
+                            optimized_order: []
+                        }
+                    },
+                    best_days: {
+                        Monday: 0.7,
+                        Tuesday: 0.9,
+                        Wednesday: 0.8,
+                        Thursday: 0.7,
+                        Friday: 0.5
+                    },
+                    maps: {
+                        Monday: 'route_map_Monday.html',
+                        Tuesday: 'route_map_Tuesday.html',
+                        Wednesday: 'route_map_Wednesday.html'
+                    }
+                };
+                
+                // Display logistics results
+                displayLogisticsResults(logisticsResults);
+                
+                // Show results container
+                logisticsResultsContainer.style.display = 'block';
+            }, 1500);
+        }
+
+        // Handle export discovered companies button click
+        function handleExportDiscovered() {
+            // In a real implementation, this would call the backend API to generate a CSV
+            // For now, we'll just show an alert
+            alert('Companies exported to CSV successfully!');
+        }
+
+        // Display company details
+        function displayCompanyDetails(company) {
+            // Company details
+            let detailsHtml = `
+                <h4>${company.name}</h4>
+                <p>${company.description}</p>
+                <div class="row mt-3">
+                    <div class="col-md-6">
+                        <h5>Basic Information</h5>
+                        <ul class="list-group list-group-flush">
+                            <li class="list-group-item"><strong>Industry:</strong> ${company.industry.primary}</li>
+                            <li class="list-group-item"><strong>Legal Structure:</strong> ${company.legal_structure}</li>
+                            <li class="list-group-item"><strong>Website:</strong> <a href="${company.website}" target="_blank">${company.website}</a></li>
+                            <li class="list-group-item"><strong>Address:</strong> ${company.address.street}, ${company.address.city}, ${company.address.state} ${company.address.zip}</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h5>Key Executive</h5>
+                        <ul class="list-group list-group-flush">
+                            <li class="list-group-item"><strong>Name:</strong> ${company.executives[0].name}</li>
+                            <li class="list-group-item"><strong>Role:</strong> ${company.executives[0].role}</li>
+                            <li class="list-group-item"><strong>Email:</strong> ${company.executives[0].contact.email}</li>
+                            <li class="list-group-item"><strong>Phone:</strong> ${company.executives[0].contact.phone}</li>
+                        </ul>
+                    </div>
+                </div>
+            `;
+            companyDetails.innerHTML = detailsHtml;
+            
+            // Tax potential
+            let taxHtml = `
+                <div class="text-center">
+                    <h4>Tax Saving Potential</h4>
+                    <div class="display-1 mt-3 mb-3">
+                        <span class="badge bg-${company.tax_indicators.tax_saving_potential.toLowerCase() === 'high' ? 'success' : (company.tax_indicators.tax_saving_potential.toLowerCase() === 'medium' ? 'warning' : 'danger')}">
+                            ${company.tax_indicators.tax_saving_potential}
+                        </span>
+                    </div>
+                    <div class="row mt-4">
+                        <div class="col-md-6">
+                            <h5>Financial Indicators</h5>
+                            <ul class="list-group list-group-flush">
+                                <li class="list-group-item"><strong>Employees:</strong> ${company.financials.employee_count}</li>
+                                <li class="list-group-item"><strong>Est. Revenue:</strong> $${(company.financials.estimated_revenue / 1000000).toFixed(1)}M</li>
+                                <li class="list-group-item"><strong>Growth Rate:</strong> ${company.financials.growth_rate}%</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h5>Recommended Services</h5>
+                            <ul class="list-group list-group-flush">
+                                <li class="list-group-item">R&D Tax Credits</li>
+                                <li class="list-group-item">Cost Segregation</li>
+                                <li class="list-group-item">Employee Retention Credit</li>
+                                <li class="list-group-item">Strategic Tax Planning</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            `;
+            taxPotential.innerHTML = taxHtml;
+            
+            // Add to selected companies for logistics
+            updateSelectedCompanies(company);
+        }
+
+        // Display similar companies
+        function displaySimilarCompanies(companies) {
+            let html = '';
+            
+            companies.forEach(company => {
+                html += `
+                    <div class="col-md-4">
+                        <div class="card company-card" onclick="selectCompanyForLogistics(${JSON.stringify(company).replace(/"/g, '&quot;')})">
+                            <div class="card-body">
+                                <h5 class="card-title">${company.name}</h5>
+                                <h6 class="card-subtitle mb-2 text-muted">${company.industry}</h6>
+                                <p class="card-text">${company.description}</p>
+                                <ul class="list-group list-group-flush">
+                                    <li class="list-group-item"><strong>Location:</strong> ${company.address}</li>
+                                    <li class="list-group-item"><strong>Employees:</strong> ${company.employee_count}</li>
+                                    <li class="list-group-item"><strong>Similarity:</strong> ${(company.similarity_score * 100).toFixed(0)}%</li>
+                                </ul>
+                                <div class="text-end mt-3">
+                                    <button class="btn btn-sm btn-primary" onclick="event.stopPropagation(); selectCompanyForLogistics(${JSON.stringify(company).replace(/"/g, '&quot;')})">
+                                        <i class="fas fa-plus me-1"></i>Add to Logistics
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            similarCompaniesContainer.innerHTML = html;
+        }
+
+        // Display discovered companies
+        function displayDiscoveredCompanies(companies) {
+            let html = '';
+            
+            companies.forEach(company => {
+                html += `
+                    <div class="col-md-4 mb-4">
+                        <div class="card company-card" onclick="selectCompanyForLogistics(${JSON.stringify(company).replace(/"/g, '&quot;')})">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <h5 class="card-title">${company.name}</h5>
+                                    <span class="badge bg-${company.tax_saving_potential.toLowerCase() === 'high' ? 'success' : (company.tax_saving_potential.toLowerCase() === 'medium' ? 'warning' : 'danger')}">
+                                        ${company.tax_saving_potential}
+                                    </span>
+                                </div>
+                                <h6 class="card-subtitle mb-2 text-muted">${company.industry}</h6>
+                                <p class="card-text">${company.description}</p>
+                                <ul class="list-group list-group-flush">
+                                    <li class="list-group-item"><strong>Location:</strong> ${company.address}</li>
+                                    <li class="list-group-item"><strong>Employees:</strong> ${company.employee_count}</li>
+                                </ul>
+                                <div class="text-end mt-3">
+                                    <button class="btn btn-sm btn-primary" onclick="event.stopPropagation(); selectCompanyForLogistics(${JSON.stringify(company).replace(/"/g, '&quot;')})">
+                                        <i class="fas fa-plus me-1"></i>Add to Logistics
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            discoveredCompaniesList.innerHTML = html;
+        }
+
+        // Display logistics results
+        function displayLogisticsResults(results) {
+            // Display schedule for each day
+            for (const [day, route] of Object.entries(results.schedule)) {
+                const dayDetails = document.getElementById(`${day.toLowerCase()}-details`);
+                const dayMap = document.getElementById(`${day.toLowerCase()}-map`);
+                
+                if (route.companies.length > 0) {
+                    let detailsHtml = `
+                        <div class="alert alert-primary">
+                            <strong>${route.companies.length} companies</strong> | 
+                            Distance: ${route.total_distance.toFixed(1)} miles | 
+                            Est. Time: ${route.estimated_travel_time.toFixed(1)} hours
+                        </div>
+                        <div class="list-group">
+                    `;
+                    
+                    route.companies.forEach((company, index) => {
+                        detailsHtml += `
+                            <div class="list-group-item">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <strong>${index + 1}. ${company.name}</strong>
+                                        <div class="text-muted small">${company.address}</div>
+                                    </div>
+                                    <span class="badge bg-primary rounded-pill">${index + 1}</span>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    
+                    detailsHtml += `</div>`;
+                    dayDetails.innerHTML = detailsHtml;
+                    
+                    // Display map if available
+                    if (results.maps[day]) {
+                        dayMap.innerHTML = `
+                            <div class="alert alert-success">
+                                <i class="fas fa-map-marked-alt me-2"></i>Route map available
+                            </div>
+                            <div class="text-center">
+                                <img src="https://via.placeholder.com/800x400?text=Route+Map+for+${day}" class="img-fluid border" alt="Route Map">
+                            </div>
+                        `;
+                    } else {
+                        dayMap.innerHTML = `
+                            <div class="alert alert-warning">
+                                <i class="fas fa-exclamation-triangle me-2"></i>No route map available for ${day}
+                            </div>
+                        `;
+                    }
+                } else {
+                    dayDetails.innerHTML = `
+                        <div class="alert alert-secondary">
+                            <i class="fas fa-info-circle me-2"></i>No companies scheduled for ${day}
+                        </div>
+                    `;
+                    dayMap.innerHTML = `
+                        <div class="alert alert-secondary">
+                            <i class="fas fa-info-circle me-2"></i>No route map needed for ${day}
+                        </div>
+                    `;
+                }
+            }
+            
+            // Display best outreach days chart
+            const bestDaysChart = document.getElementById('best-days-chart');
+            bestDaysChart.innerHTML = '<canvas id="best-days-canvas"></canvas>';
+            
+            const ctx = document.getElementById('best-days-canvas').getContext('2d');
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(results.best_days),
+                    datasets: [{
+                        label: 'Response Rate',
+                        data: Object.values(results.best_days),
+                        backgroundColor: [
+                            'rgba(75, 192, 192, 0.6)',
+                            'rgba(54, 162, 235, 0.6)',
+                            'rgba(153, 102, 255, 0.6)',
+                            'rgba(255, 206, 86, 0.6)',
+                            'rgba(255, 99, 132, 0.6)'
+                        ],
+                        borderColor: [
+                            'rgba(75, 192, 192, 1)',
+                            'rgba(54, 162, 235, 1)',
+                            'rgba(153, 102, 255, 1)',
+                            'rgba(255, 206, 86, 1)',
+                            'rgba(255, 99, 132, 1)'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 1,
+                            ticks: {
+                                callback: function(value) {
+                                    return (value * 100) + '%';
+                                }
+                            }
+                        }
+                    },
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return 'Response Rate: ' + (context.raw * 100).toFixed(0) + '%';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Update selected companies for logistics
+        function updateSelectedCompanies(company) {
+            // Check if company is already selected
+            const existingIndex = selectedCompanies.findIndex(c => c.id === company.id);
+            if (existingIndex === -1) {
+                selectedCompanies.push(company);
+            }
+            
+            // Update UI
+            if (selectedCompanies.length > 0) {
+                let html = '<div class="row">';
+                
+                selectedCompanies.forEach(c => {
+                    html += `
+                        <div class="col-md-4 mb-3">
+                            <div class="card">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <h5 class="card-title">${c.name}</h5>
+                                        <button class="btn btn-sm btn-danger" onclick="removeCompanyFromLogistics('${c.id}')">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    </div>
+                                    <h6 class="card-subtitle mb-2 text-muted">${c.industry?.primary || c.industry}</h6>
+                                    <p class="card-text small">${c.address?.city || c.address}, ${c.address?.state || 'WI'}</p>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                html += '</div>';
+                selectedCompaniesContainer.innerHTML = html;
+                optimizeLogisticsBtn.disabled = false;
+            } else {
+                selectedCompaniesContainer.innerHTML = `
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>No companies selected. Use the Company Lookup or Industry Discovery tabs to find and select companies.
+                    </div>
+                `;
+                optimizeLogisticsBtn.disabled = true;
+            }
+        }
+
+        // Select company for logistics
+        function selectCompanyForLogistics(company) {
+            updateSelectedCompanies(company);
+        }
+
+        // Remove company from logistics
+        function removeCompanyFromLogistics(companyId) {
+            selectedCompanies = selectedCompanies.filter(c => c.id !== companyId);
+            updateSelectedCompanies({});  // Update UI
+        }
+    </script>
+</body>
+</html>
